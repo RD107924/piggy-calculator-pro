@@ -1,10 +1,9 @@
-// server.js (更新後)
+// server.js (修正後)
 const express = require("express");
 const { PrismaClient } = require("@prisma/client");
 const path = require("path");
 const cors = require("cors");
 
-// NEW: 引入新的路由和中間件
 const authMiddleware = require("./authMiddleware");
 const userRoutes = require("./userRoutes");
 const adminRoutes = require("./adminRoutes");
@@ -13,18 +12,14 @@ const app = express();
 const prisma = new PrismaClient();
 const PORT = process.env.PORT || 3000;
 
-// Middleware
 app.use(cors());
 app.use(express.json({ limit: "5mb" }));
 app.use(express.static(path.join(__dirname, "public")));
 
-// --- API Routes ---
-// NEW: 公開 API：使用者登入
 app.use("/api/users", userRoutes);
-// NEW: 受保護的 API：後台管理功能 (所有 /api/admin 的路徑都需要登入驗證)
 app.use("/api/admin", authMiddleware, adminRoutes);
 
-// 原本的客戶訂單提交 API (公開)
+// MODIFIED: 儲存訂單前，對 calculationResult 進行淨化
 app.post("/api/orders", async (req, res) => {
   try {
     const {
@@ -33,12 +28,27 @@ app.post("/api/orders", async (req, res) => {
       address,
       phone,
       idNumber,
-      calculationResult,
+      calculationResult, // 這是從前端傳來、可能包含複雜物件的原始資料
     } = req.body;
 
     if (!recipientName || !address || !phone || !calculationResult) {
       return res.status(400).json({ error: "缺少必要的訂單資訊" });
     }
+
+    // --- 淨化步驟 ---
+    // 建立一個新的、乾淨的物件，只包含我們確定需要的欄位
+    // 這可以避免將不必要的或可能導致錯誤的資料存入資料庫
+    const cleanCalculationResult = {
+      allItemsData: calculationResult.allItemsData,
+      totalShipmentVolume: calculationResult.totalShipmentVolume,
+      totalCbm: calculationResult.totalCbm,
+      initialSeaFreightCost: calculationResult.initialSeaFreightCost,
+      finalSeaFreightCost: calculationResult.finalSeaFreightCost,
+      remoteAreaRate: calculationResult.remoteAreaRate,
+      remoteFee: calculationResult.remoteFee,
+      hasOversizedItem: calculationResult.hasOversizedItem,
+      finalTotal: calculationResult.finalTotal,
+    };
 
     const newOrder = await prisma.shipmentOrder.create({
       data: {
@@ -47,7 +57,7 @@ app.post("/api/orders", async (req, res) => {
         address,
         phone,
         idNumber,
-        calculationResult,
+        calculationResult: cleanCalculationResult, // 使用淨化後的資料
       },
     });
     res.status(201).json(newOrder);
@@ -67,8 +77,6 @@ app.get("/register.html", (req, res) => {
 app.get("/login.html", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "login.html"));
 });
-
-// 將所有其他請求導向主計算器頁面
 app.get("*", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "index.html"));
 });

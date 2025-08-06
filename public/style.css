@@ -452,9 +452,8 @@ select option:disabled {
   }
 }
 
-/* --- 新增：後台儀表板、篩選器、彈窗樣式 --- */
+/* --- 後台儀表板、篩選器、彈窗樣式 --- */
 
-/* 數據儀表板 */
 .dashboard-stats {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -484,7 +483,6 @@ select option:disabled {
   color: #1a73e8;
 }
 
-/* 篩選器 */
 .filters {
   display: flex;
   gap: 15px;
@@ -501,7 +499,6 @@ select option:disabled {
   flex: 1;
 }
 
-/* 查看詳情按鈕 */
 .btn-view-detail {
   padding: 5px 10px;
   font-size: 14px;
@@ -515,7 +512,6 @@ select option:disabled {
   background-color: #2980b9;
 }
 
-/* 訂單詳情 Modal */
 .modal-overlay {
   position: fixed;
   top: 0;
@@ -570,4 +566,17 @@ select option:disabled {
 .item-detail ul {
   padding-left: 20px;
   margin: 5px 0 0 0;
+}
+
+/* --- 更新 LINE 按鈕樣式 (文字取代圖示) --- */
+
+.line-fab {
+  text-decoration: none;
+  font-size: 18px;
+  font-weight: bold;
+  color: white;
+}
+
+.line-fab svg {
+  display: none;
 }
