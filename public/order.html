@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>填寫收件資料 - 小跑豬專業版試算器</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div class="calculator-container">
+      <h1>填寫台灣收件資料</h1>
+      <form id="orderForm">
+        <div class="input-wrapper" style="margin-bottom: 15px">
+          <label for="recipientName">收件人姓名 (必填)</label>
+          <input type="text" id="recipientName" required />
+        </div>
+        <div class="input-wrapper" style="margin-bottom: 15px">
+          <label for="address">派送地址 (必填)</label>
+          <input type="text" id="address" required />
+        </div>
+        <div class="input-wrapper" style="margin-bottom: 15px">
+          <label for="phone">聯絡電話 (必填)</label>
+          <input type="tel" id="phone" required />
+        </div>
+        <div class="input-wrapper" style="margin-bottom: 15px">
+          <label for="idNumber">身分證字號 (選填，清關備查用)</label>
+          <input type="text" id="idNumber" />
+        </div>
+        <button type="submit" class="btn btn-calculate" style="width: 100%">
+          確認送出訂單
+        </button>
+      </form>
+      <div
+        id="formMessage"
+        style="margin-top: 20px; text-align: center; font-size: 1.1em"
+      ></div>
+    </div>
+    <script src="order.js"></script>
+  </body>
+</html>
