@@ -353,10 +353,18 @@ select option:disabled {
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
   z-index: 1000;
   transition: transform 0.2s ease-in-out;
+  text-decoration: none;
+  font-size: 18px;
+  font-weight: bold;
+  color: white;
 }
 
 .line-fab:hover {
   transform: scale(1.1);
+}
+
+.line-fab svg {
+  display: none;
 }
 
 /* --- 手機版響應式設計 --- */
@@ -568,15 +576,41 @@ select option:disabled {
   margin: 5px 0 0 0;
 }
 
-/* --- 更新 LINE 按鈕樣式 (文字取代圖示) --- */
+/* --- 【優化功能】新增的樣式 --- */
 
-.line-fab {
-  text-decoration: none;
-  font-size: 18px;
-  font-weight: bold;
-  color: white;
+/* 1. 即時輸入驗證 */
+.input-wrapper input.invalid {
+  border-color: #e74c3c; /* 紅色邊框 */
+  background-color: #fff2f2;
 }
 
-.line-fab svg {
-  display: none;
+.validation-message {
+  color: #e74c3c;
+  font-size: 13px;
+  margin-top: 5px;
+  display: none; /* 預設隱藏 */
+}
+
+/* 2. 處理中狀態的讀取圖示 */
+.spinner {
+  display: inline-block;
+  width: 18px;
+  height: 18px;
+  border: 3px solid rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  border-top-color: #fff;
+  animation: spin 1s ease-in-out infinite;
+  margin-right: 8px;
+  vertical-align: middle;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
 }
