@@ -1,3 +1,4 @@
+// public/script.js (最終完整版)
 document.addEventListener("DOMContentLoaded", () => {
   // --- 1. 資料定義 ---
   const rates = {
@@ -48,40 +49,41 @@ document.addEventListener("DOMContentLoaded", () => {
         items.push(itemData);
       });
       localStorage.setItem("draftItems", JSON.stringify(items));
+      console.log("Draft saved to localStorage");
     }, 500); // Debounce: 停止輸入 500ms 後才儲存
   };
 
   const loadItemsFromLocalStorage = () => {
-    const draftItems = JSON.parse(localStorage.getItem("draftItems"));
-    if (draftItems && Array.isArray(draftItems) && draftItems.length > 0) {
-      itemList.innerHTML = ""; // 清空預設的第一項
-      itemCount = 0;
-      draftItems.forEach((itemData) => {
-        addNewItem(); // 這會建立一個新的 item group
-        const id = itemCount;
-        document.getElementById(`name-${id}`).value = itemData.name || "";
-        document.getElementById(`length-${id}`).value = itemData.length || "";
-        document.getElementById(`width-${id}`).value = itemData.width || "";
-        document.getElementById(`height-${id}`).value = itemData.height || "";
-        document.getElementById(`cbm-${id}`).value = itemData.cbm || "";
-        document.getElementById(`weight-${id}`).value = itemData.weight || "";
-        document.getElementById(`quantity-${id}`).value =
-          itemData.quantity || "1";
-        document.getElementById(`type-${id}`).value =
-          itemData.type || "general";
+    const draftItemsJSON = localStorage.getItem("draftItems");
+    if (draftItemsJSON) {
+      const draftItems = JSON.parse(draftItemsJSON);
+      if (draftItems && Array.isArray(draftItems) && draftItems.length > 0) {
+        itemList.innerHTML = ""; // 清空預設的第一項
+        itemCount = 0;
+        draftItems.forEach((itemData) => {
+          addNewItem(); // 這會建立一個新的 item group (itemCount will be incremented inside)
+          const id = itemCount;
+          document.getElementById(`name-${id}`).value = itemData.name || "";
+          document.getElementById(`length-${id}`).value = itemData.length || "";
+          document.getElementById(`width-${id}`).value = itemData.width || "";
+          document.getElementById(`height-${id}`).value = itemData.height || "";
+          document.getElementById(`cbm-${id}`).value = itemData.cbm || "";
+          document.getElementById(`weight-${id}`).value = itemData.weight || "";
+          document.getElementById(`quantity-${id}`).value =
+            itemData.quantity || "1";
+          document.getElementById(`type-${id}`).value =
+            itemData.type || "general";
 
-        const radio = document.querySelector(
-          `input[name="calc-method-${id}"][value="${itemData.calcMethod}"]`
-        );
-        if (radio) {
-          radio.checked = true;
-          // Manually trigger change event to show/hide correct fields
-          const event = new Event("change", { bubbles: true });
-          radio.dispatchEvent(event);
-        }
-      });
-    } else {
-      addNewItem(); // 如果沒有草稿，或草稿無效，則建立一個空的
+          const radio = document.querySelector(
+            `input[name="calc-method-${id}"][value="${itemData.calcMethod}"]`
+          );
+          if (radio) {
+            radio.checked = true;
+            const event = new Event("change", { bubbles: true });
+            radio.dispatchEvent(event);
+          }
+        });
+      }
     }
   };
 
@@ -192,8 +194,14 @@ document.addEventListener("DOMContentLoaded", () => {
     const min = parseFloat(input.getAttribute("min"));
     const wrapper = input.parentElement;
     const messageDiv = wrapper.querySelector(".validation-message");
+    if (!messageDiv) return true;
 
     let isValid = !isNaN(value) && value >= min;
+
+    if (input.value === "" && input.offsetParent !== null) {
+      // Empty but visible
+      isValid = false;
+    }
 
     if (isValid) {
       input.classList.remove("invalid");
@@ -206,7 +214,7 @@ document.addEventListener("DOMContentLoaded", () => {
   };
 
   function calculateTotal() {
-    const originalBtnText = calculateBtn.innerHTML;
+    const originalBtnText = calculateBtn.textContent;
     calculateBtn.disabled = true;
     calculateBtn.innerHTML = `<span class="spinner"></span> 計算中...`;
 
@@ -224,7 +232,6 @@ document.addEventListener("DOMContentLoaded", () => {
       document
         .querySelectorAll('.item-group input[type="number"]')
         .forEach((input) => {
-          // 只驗證可見的輸入框
           if (input.offsetParent !== null) {
             if (!validateInput(input)) {
               allFormsAreValid = false;
@@ -241,36 +248,284 @@ document.addEventListener("DOMContentLoaded", () => {
 
       const allItemsData = Array.from(document.querySelectorAll(".item-group"))
         .map((itemEl, index) => {
-          // ... (原有 map 邏輯，此處省略以保持簡潔)
+          const id = itemEl.id.split("-")[1];
+          const name =
+            document.getElementById(`name-${id}`).value.trim() ||
+            `貨物 ${index + 1}`;
+          const quantity =
+            parseInt(document.getElementById(`quantity-${id}`).value, 10) || 1;
+          const singleWeight = parseFloat(
+            document.getElementById(`weight-${id}`).value
+          );
+          const type = document.getElementById(`type-${id}`).value;
+          const calcMethod = itemEl.querySelector(
+            `input[name="calc-method-${id}"]:checked`
+          ).value;
+          let singleVolume = 0,
+            length = 0,
+            width = 0,
+            height = 0,
+            cbm = 0;
+
+          if (calcMethod === "dimensions") {
+            length = parseFloat(document.getElementById(`length-${id}`).value);
+            width = parseFloat(document.getElementById(`width-${id}`).value);
+            height = parseFloat(document.getElementById(`height-${id}`).value);
+            if (
+              isNaN(length) ||
+              isNaN(width) ||
+              isNaN(height) ||
+              isNaN(singleWeight)
+            )
+              return null;
+            singleVolume = Math.ceil(
+              (length * width * height) / VOLUME_DIVISOR
+            );
+            if (
+              length > OVERSIZED_LIMIT ||
+              width > OVERSIZED_LIMIT ||
+              height > OVERSIZED_LIMIT
+            ) {
+              hasOversizedItem = true;
+            }
+          } else {
+            cbm = parseFloat(document.getElementById(`cbm-${id}`).value);
+            if (isNaN(cbm) || isNaN(singleWeight)) return null;
+            singleVolume = Math.ceil(cbm * CBM_TO_CAI_FACTOR);
+          }
+          return {
+            id: index + 1,
+            name,
+            quantity,
+            singleWeight,
+            type,
+            singleVolume,
+            cbm,
+            calcMethod,
+          };
         })
         .filter((item) => item !== null);
 
       if (allItemsData.length === 0) {
-        alert("請至少填寫一項完整的貨物資料！");
         calculateBtn.disabled = false;
         calculateBtn.innerHTML = originalBtnText;
         return;
       }
 
-      // ... (原有所有計算邏輯)
+      let initialSeaFreightCost = 0;
+      let totalShipmentVolume = 0;
+      let hasOversizedItem = false;
+
+      allItemsData.forEach((item) => {
+        const rateInfo = rates[item.type];
+        item.rateInfo = rateInfo;
+
+        const totalItemWeight = item.singleWeight * item.quantity;
+        const totalItemVolume = item.singleVolume * item.quantity;
+        item.totalWeight = totalItemWeight;
+        item.totalVolume = totalItemVolume;
+
+        const itemWeightCost = totalItemWeight * rateInfo.weightRate;
+        const itemVolumeCost = totalItemVolume * rateInfo.volumeRate;
+        const itemFinalCost = Math.max(itemWeightCost, itemVolumeCost);
+
+        item.itemWeightCost = itemWeightCost;
+        item.itemVolumeCost = itemVolumeCost;
+        item.itemFinalCost = itemFinalCost;
+
+        initialSeaFreightCost += itemFinalCost;
+        totalShipmentVolume += totalItemVolume;
+      });
+
+      const finalSeaFreightCost = Math.max(
+        initialSeaFreightCost,
+        MINIMUM_CHARGE
+      );
+      const remoteAreaRate = parseFloat(deliveryLocationSelect.value);
+      let remoteFee = 0;
+      let totalCbm = totalShipmentVolume / CBM_TO_CAI_FACTOR;
+      if (remoteAreaRate > 0) {
+        remoteFee = totalCbm * remoteAreaRate;
+      }
+
+      const finalTotal = finalSeaFreightCost + remoteFee;
+
+      const calculationResultData = {
+        allItemsData,
+        totalShipmentVolume,
+        totalCbm,
+        initialSeaFreightCost,
+        finalSeaFreightCost,
+        remoteAreaRate,
+        remoteFee,
+        hasOversizedItem,
+        finalTotal,
+      };
 
       displayResults(calculationResultData);
 
+      const resultsActions = document.createElement("div");
+      resultsActions.className = "controls";
+      resultsActions.style.marginTop = "20px";
+
       const proceedButton = document.createElement("button");
-      proceedButton.textContent = "我要寄送 (下一步，填寫收件資料)";
+      proceedButton.textContent = "我要寄送 (下一步)";
       proceedButton.className = "btn btn-proceed";
       proceedButton.onclick = () => {
-        /* ... */
+        const dataToStore = {
+          lineNickname: lineNicknameInput.value,
+          calculationResult: calculationResultData,
+        };
+        localStorage.setItem("calculationData", JSON.stringify(dataToStore));
+        window.location.href = "order.html";
       };
-      resultsContainer.appendChild(proceedButton);
+
+      const shareButton = document.createElement("button");
+      shareButton.textContent = "複製估價連結分享";
+      shareButton.className = "btn";
+      shareButton.style.backgroundColor = "#f39c12";
+      shareButton.style.color = "white";
+      shareButton.onclick = () =>
+        shareQuote(shareButton, calculationResultData);
+
+      resultsActions.appendChild(shareButton);
+      resultsActions.appendChild(proceedButton);
+      resultsContainer.appendChild(resultsActions);
 
       calculateBtn.disabled = false;
       calculateBtn.innerHTML = originalBtnText;
     }, 50);
   }
 
-  // ... displayResults 和 copyWarehouseAddress 內容不變 ...
+  function displayResults(data) {
+    const {
+      allItemsData,
+      totalShipmentVolume,
+      totalCbm,
+      initialSeaFreightCost,
+      finalSeaFreightCost,
+      remoteAreaRate,
+      remoteFee,
+      hasOversizedItem,
+      finalTotal,
+    } = data;
+    let resultsHTML = '<div class="result-section">';
+    resultsHTML += `<h4>--- 費用計算明細 (逐筆) ---</h4>`;
+    allItemsData.forEach((item) => {
+      resultsHTML += `<p><strong>[${item.name} × ${item.quantity} - ${item.rateInfo.name}]</strong><br>`;
+      if (item.calcMethod === "cbm" && item.cbm > 0) {
+        resultsHTML += `<small style="color:#555;">(單件以立方米輸入: ${item.cbm} 方 × ${CBM_TO_CAI_FACTOR} = ${item.singleVolume} 材)<br></small>`;
+      }
+      resultsHTML += `<small style="color:#555;">(總材積: ${item.singleVolume} 材/件 × ${item.quantity} = ${item.totalVolume} 材 | 總重量: ${item.singleWeight} kg/件 × ${item.quantity} = ${item.totalWeight} kg)<br></small>`;
+      resultsHTML += `材積費用: ${item.totalVolume} 材 × ${
+        item.rateInfo.volumeRate
+      } = ${Math.round(item.itemVolumeCost).toLocaleString()} 台幣<br>`;
+      resultsHTML += `重量費用: ${item.totalWeight} 公斤 × ${
+        item.rateInfo.weightRate
+      } = ${Math.round(item.itemWeightCost).toLocaleString()} 台幣<br>`;
+      resultsHTML += `→ 此筆費用(取較高者): <strong>${Math.round(
+        item.itemFinalCost
+      ).toLocaleString()} 台幣</strong></p>`;
+    });
+    resultsHTML += `<hr>`;
+    resultsHTML += `<p><strong>初步海運費 (所有項目加總): ${Math.round(
+      initialSeaFreightCost
+    ).toLocaleString()} 台幣</strong></p>`;
+    if (initialSeaFreightCost < MINIMUM_CHARGE) {
+      resultsHTML += `<p style="color: #e74c3c;">↳ 未達最低消費 ${MINIMUM_CHARGE} 元，故海運費以低消計: <strong>${finalSeaFreightCost.toLocaleString()} 台幣</strong></p>`;
+    } else {
+      resultsHTML += `<p style="color: green;">↳ 已超過最低消費，海運費為: <strong>${finalSeaFreightCost.toLocaleString()} 台幣</strong></p>`;
+    }
+    if (remoteAreaRate > 0) {
+      resultsHTML += `<hr>`;
+      resultsHTML += `<p><strong>偏遠地區附加費:</strong><br>`;
+      resultsHTML += `(總材積 ${totalShipmentVolume} 材 ÷ ${CBM_TO_CAI_FACTOR} = ${totalCbm.toFixed(
+        2
+      )} 方) × ${remoteAreaRate.toLocaleString()} 元/方<br>`;
+      resultsHTML += `→ 費用: <strong>${Math.round(
+        remoteFee
+      ).toLocaleString()} 台幣</strong></p>`;
+    }
+    resultsHTML += `</div>`;
+    resultsHTML += `
+            <div class="result-section" style="text-align: center;">
+                <h2>最終總計費用</h2>
+                <div class="total-cost">${Math.round(
+                  finalTotal
+                ).toLocaleString()} 台幣</div>
+                <small>(海運費 ${Math.round(
+                  finalSeaFreightCost
+                ).toLocaleString()} + 偏遠費 ${Math.round(
+      remoteFee
+    ).toLocaleString()})</small>
+            </div>
+        `;
+    if (hasOversizedItem) {
+      resultsHTML += `<div class="final-disclaimer"><strong>提醒：</strong>您的貨物中有單邊超過 300 公分的品項，將會產生超長費 (600元/件 起)，實際費用以入庫報價為準。</div>`;
+    }
+    resultsHTML += `<div class="final-disclaimer">此試算表僅適用於小跑豬傢俱專線，試算費用僅供參考，最終金額以實際入庫丈量為準。</div>`;
+    resultsContainer.innerHTML = resultsHTML;
+  }
 
+  async function shareQuote(button, calculationResultData) {
+    const originalBtnText = button.textContent;
+    button.disabled = true;
+    button.innerHTML = `<span class="spinner"></span> 產生連結中...`;
+
+    try {
+      const response = await fetch("/api/quotes", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ calculationResult: calculationResultData }),
+      });
+
+      if (!response.ok) throw new Error("無法建立分享連結");
+
+      const { id } = await response.json();
+      const shareUrl = `${window.location.origin}/quote.html?id=${id}`;
+
+      await navigator.clipboard.writeText(shareUrl);
+
+      button.textContent = "連結已複製！";
+      button.style.backgroundColor = "#27ae60";
+    } catch (error) {
+      console.error(error);
+      button.textContent = "產生失敗";
+      button.style.backgroundColor = "#e74c3c";
+    } finally {
+      setTimeout(() => {
+        button.disabled = false;
+        button.innerHTML = originalBtnText;
+        button.style.backgroundColor = "#f39c12";
+      }, 2000);
+    }
+  }
+
+  function copyWarehouseAddress() {
+    const addressBox = document.getElementById("warehouseAddressBox");
+    const textToCopy = addressBox.innerText
+      .replace(/\[您的姓名\]/g, "(請填上您的姓名)")
+      .replace(/\[您的電話末三碼\]/g, "(請填上您的電話末三碼)")
+      .trim();
+
+    navigator.clipboard
+      .writeText(textToCopy)
+      .then(() => {
+        const originalText = copyAddressBtn.textContent;
+        copyAddressBtn.textContent = "複製成功！";
+        copyAddressBtn.style.backgroundColor = "#27ae60";
+        setTimeout(() => {
+          copyAddressBtn.textContent = originalText;
+          copyAddressBtn.style.backgroundColor = "";
+        }, 2000);
+      })
+      .catch((err) => {
+        console.error("複製失敗: ", err);
+        alert("複製失敗，請手動複製。");
+      });
+  }
+
+  // --- 4. 綁定事件監聽 ---
   addItemBtn.addEventListener("click", () => {
     addNewItem();
     saveItemsToLocalStorage();

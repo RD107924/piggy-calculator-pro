@@ -1,25 +1,30 @@
-// server.js (修正後)
+// server.js (最終完整版)
 const express = require("express");
 const { PrismaClient } = require("@prisma/client");
 const path = require("path");
 const cors = require("cors");
 
+// 引入所有需要的路由和中間件
 const authMiddleware = require("./authMiddleware");
 const userRoutes = require("./userRoutes");
 const adminRoutes = require("./adminRoutes");
+const quoteRoutes = require("./quoteRoutes"); // 引入估價單路由
 
 const app = express();
 const prisma = new PrismaClient();
 const PORT = process.env.PORT || 3000;
 
+// Middleware
 app.use(cors());
 app.use(express.json({ limit: "5mb" }));
 app.use(express.static(path.join(__dirname, "public")));
 
-app.use("/api/users", userRoutes);
-app.use("/api/admin", authMiddleware, adminRoutes);
+// --- API Routes ---
+app.use("/api/quotes", quoteRoutes); // 公開的估價單 API
+app.use("/api/users", userRoutes); // 公開的使用者登入 API
+app.use("/api/admin", authMiddleware, adminRoutes); // 受保護的後台管理 API
 
-// MODIFIED: 儲存訂單前，對 calculationResult 進行淨化
+// 客戶提交正式訂單的 API (公開)
 app.post("/api/orders", async (req, res) => {
   try {
     const {
@@ -28,7 +33,7 @@ app.post("/api/orders", async (req, res) => {
       address,
       phone,
       idNumber,
-      calculationResult, // 這是從前端傳來、可能包含複雜物件的原始資料
+      calculationResult,
     } = req.body;
 
     if (!recipientName || !address || !phone || !calculationResult) {
@@ -36,8 +41,6 @@ app.post("/api/orders", async (req, res) => {
     }
 
     // --- 淨化步驟 ---
-    // 建立一個新的、乾淨的物件，只包含我們確定需要的欄位
-    // 這可以避免將不必要的或可能導致錯誤的資料存入資料庫
     const cleanCalculationResult = {
       allItemsData: calculationResult.allItemsData,
       totalShipmentVolume: calculationResult.totalShipmentVolume,
@@ -68,6 +71,9 @@ app.post("/api/orders", async (req, res) => {
 });
 
 // 處理前端頁面請求
+app.get("/quote.html", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "quote.html"));
+});
 app.get("/admin", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "admin.html"));
 });
@@ -77,6 +83,7 @@ app.get("/register.html", (req, res) => {
 app.get("/login.html", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "login.html"));
 });
+// 將所有其他請求導向主計算器頁面
 app.get("*", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "index.html"));
 });

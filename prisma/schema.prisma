@@ -10,7 +10,7 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// NEW: 新增使用者(員工)的資料模型
+// 用於後台管理系統的「使用者(員工)」資料模型
 model User {
   id            String    @id @default(cuid())
   username      String    @unique // 員工登入帳號，不可重複
@@ -24,7 +24,7 @@ model User {
   @@map("users")
 }
 
-// NEW: 新增訂單狀態的枚舉(Enum)
+// 訂單進度的枚舉(Enum)類型
 enum OrderStatus {
   NEEDS_PURCHASE // 需採購清單
   PURCHASED      // 已採購
@@ -35,7 +35,7 @@ enum OrderStatus {
   DELIVERY_COMPLETE // 派送完成
 }
 
-// MODIFIED: 修改訂單模型，加入狀態和指派人員
+// 客戶提交的「正式訂單」資料模型
 model ShipmentOrder {
   id                String    @id @default(cuid())
   createdAt         DateTime  @default(now())
@@ -46,7 +46,7 @@ model ShipmentOrder {
   idNumber          String?
   calculationResult Json      
 
-  // --- 以下為新增的欄位 ---
+  // 用於後台追蹤的欄位
   status            OrderStatus @default(NEEDS_PURCHASE) // 訂單進度狀態
   
   // 指派給哪位員工 (選填)
@@ -54,4 +54,13 @@ model ShipmentOrder {
   assignedTo        User?       @relation("AssignedOrders", fields: [assignedToId], references: [id])
 
   @@map("shipment_orders")
+}
+
+// 用於分享功能的「估價單」資料模型
+model CalculationQuote {
+  id                String    @id @default(cuid())
+  createdAt         DateTime  @default(now())
+  calculationResult Json
+
+  @@map("calculation_quotes")
 }
