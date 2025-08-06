@@ -1,3 +1,6 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
 generator client {
   provider = "prisma-client-js"
 }
@@ -7,6 +10,32 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// NEW: 新增使用者(員工)的資料模型
+model User {
+  id            String    @id @default(cuid())
+  username      String    @unique // 員工登入帳號，不可重複
+  passwordHash  String    // 加密後的密碼
+  role          String    @default("OPERATOR") // 角色，例如 OPERATOR 或 ADMIN
+  createdAt     DateTime  @default(now())
+
+  // 建立 User 和 ShipmentOrder 之間的一對多關聯
+  assignedOrders ShipmentOrder[] @relation("AssignedOrders")
+
+  @@map("users")
+}
+
+// NEW: 新增訂單狀態的枚舉(Enum)
+enum OrderStatus {
+  NEEDS_PURCHASE // 需採購清單
+  PURCHASED      // 已採購
+  IN_WAREHOUSE   // 已入庫
+  NOT_IN_WAREHOUSE // 未入庫
+  SHIPPED        // 已發貨
+  IN_CUSTOMS     // 清關中
+  DELIVERY_COMPLETE // 派送完成
+}
+
+// MODIFIED: 修改訂單模型，加入狀態和指派人員
 model ShipmentOrder {
   id                String    @id @default(cuid())
   createdAt         DateTime  @default(now())
@@ -16,6 +45,13 @@ model ShipmentOrder {
   phone             String
   idNumber          String?
   calculationResult Json      
+
+  // --- 以下為新增的欄位 ---
+  status            OrderStatus @default(NEEDS_PURCHASE) // 訂單進度狀態
   
+  // 指派給哪位員工 (選填)
+  assignedToId      String?
+  assignedTo        User?       @relation("AssignedOrders", fields: [assignedToId], references: [id])
+
   @@map("shipment_orders")
 }

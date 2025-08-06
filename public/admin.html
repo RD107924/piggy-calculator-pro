@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="UTF-8" />
+    <title>訂單管理後台</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div class="calculator-container" style="max-width: 1200px">
+      <div
+        style="
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          flex-wrap: wrap;
+          gap: 10px;
+        "
+      >
+        <h1>訂單管理後台</h1>
+        <div>
+          <a
+            href="/register.html"
+            class="btn btn-add"
+            style="text-decoration: none"
+            >新增員工</a
+          >
+          <button
+            id="logoutBtn"
+            class="btn"
+            style="background-color: #7f8c8d; color: white"
+          >
+            登出
+          </button>
+        </div>
+      </div>
+      <div class="admin-table-wrapper" style="overflow-x: auto">
+        <table class="rate-table">
+          <thead>
+            <tr>
+              <th>訂單時間</th>
+              <th>LINE 暱稱</th>
+              <th>收件人</th>
+              <th>聯絡電話</th>
+              <th>總金額</th>
+              <th>進度</th>
+              <th>負責人</th>
+            </tr>
+          </thead>
+          <tbody id="ordersTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+    <script src="admin.js"></script>
+  </body>
+</html>
