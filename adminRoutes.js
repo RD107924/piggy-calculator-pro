@@ -1,4 +1,4 @@
-// adminRoutes.js (測試版)
+// adminRoutes.js (最終修正版)
 const express = require("express");
 const bcrypt = require("bcryptjs");
 const { PrismaClient, OrderStatus } = require("@prisma/client");
@@ -23,17 +23,61 @@ router.post("/register", async (req, res) => {
   }
 });
 
-// --- MODIFIED FOR DEBUGGING ---
-// 暫時移除了所有篩選條件，並加入了詳細的日誌
+router.get("/stats", async (req, res) => {
+  try {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+
+    const [newOrdersToday, pendingOrders, totalOrdersThisMonth, userCount] =
+      await Promise.all([
+        prisma.shipmentOrder.count({ where: { createdAt: { gte: today } } }),
+        prisma.shipmentOrder.count({ where: { status: "NEEDS_PURCHASE" } }),
+        prisma.shipmentOrder.count({
+          where: { createdAt: { gte: startOfMonth } },
+        }),
+        prisma.user.count(),
+      ]);
+
+    res.json({
+      newOrdersToday,
+      pendingOrders,
+      totalOrdersThisMonth,
+      userCount,
+    });
+  } catch (error) {
+    console.error("獲取統計數據失敗:", error);
+    res.status(500).json({ error: "無法獲取統計數據" });
+  }
+});
+
 router.get("/orders", async (req, res) => {
   console.log("收到獲取訂單的請求，開始查詢資料庫...");
   try {
-    const orders = await prisma.shipmentOrder.findMany({
+    const { status, assignedToId, search } = req.query;
+    const whereClause = {};
+    if (status) whereClause.status = status;
+    if (assignedToId) whereClause.assignedToId = assignedToId;
+    if (search) {
+      whereClause.OR = [
+        { recipientName: { contains: search, mode: "insensitive" } },
+        { phone: { contains: search, mode: "insensitive" } },
+        { lineNickname: { contains: search, mode: "insensitive" } },
+      ];
+    }
+
+    const ordersFromDb = await prisma.shipmentOrder.findMany({
+      where: whereClause,
       orderBy: { createdAt: "desc" },
       include: { assignedTo: { select: { username: true } } },
     });
-    console.log(`查詢成功！在資料庫中找到了 ${orders.length} 筆訂單。`);
-    res.json(orders);
+    console.log(`查詢成功！在資料庫中找到了 ${ordersFromDb.length} 筆訂單。`);
+
+    // --- NEW: 淨化資料，確保 JSON 安全 ---
+    // 這個技巧可以將 Prisma 回傳的複雜物件，轉換為純粹的 JSON 資料結構
+    const safeOrders = JSON.parse(JSON.stringify(ordersFromDb));
+
+    res.json(safeOrders);
   } catch (error) {
     console.error("查詢訂單時發生嚴重錯誤:", error);
     res.status(500).json({ error: "查詢訂單時伺服器發生錯誤" });
