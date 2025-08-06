@@ -1,4 +1,4 @@
-// public/admin.js (升級後)
+// public/admin.js (修正後)
 document.addEventListener("DOMContentLoaded", async () => {
   const token = localStorage.getItem("authToken");
   if (!token) {
@@ -10,6 +10,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     Authorization: `Bearer ${token}`,
     "Content-Type": "application/json",
   };
+  const fetchOptions = { headers, cache: "no-cache" }; // NEW: 加入 no-cache 設定
 
   // DOM Elements
   const ordersTableBody = document.getElementById("ordersTableBody");
@@ -21,7 +22,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   const modalBody = document.getElementById("modal-body");
   const closeModalBtn = document.querySelector(".modal-close-btn");
 
-  let allOrders = []; // 用來緩存所有訂單數據
+  let allOrders = [];
 
   const statusMap = {
     NEEDS_PURCHASE: "需採購清單",
@@ -33,7 +34,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     DELIVERY_COMPLETE: "派送完成",
   };
 
-  // 填充狀態篩選下拉選單
   Object.entries(statusMap).forEach(([key, value]) => {
     const option = document.createElement("option");
     option.value = key;
@@ -51,7 +51,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (e.target === modal) modal.style.display = "none";
   });
 
-  // 渲染訂單到表格
   const renderOrders = (orders, users) => {
     ordersTableBody.innerHTML = orders
       .map(
@@ -99,7 +98,6 @@ document.addEventListener("DOMContentLoaded", async () => {
       .join("");
   };
 
-  // 獲取並渲染所有數據
   const fetchAndRender = async () => {
     try {
       const params = new URLSearchParams({
@@ -109,9 +107,9 @@ document.addEventListener("DOMContentLoaded", async () => {
       }).toString();
 
       const [usersResponse, ordersResponse, statsResponse] = await Promise.all([
-        fetch("/api/admin/users", { headers }),
-        fetch(`/api/admin/orders?${params}`, { headers }),
-        fetch("/api/admin/stats", { headers }),
+        fetch("/api/admin/users", fetchOptions),
+        fetch(`/api/admin/orders?${params}`, fetchOptions), // MODIFIED
+        fetch("/api/admin/stats", fetchOptions), // MODIFIED
       ]);
 
       if (ordersResponse.status === 401) {
@@ -124,9 +122,8 @@ document.addEventListener("DOMContentLoaded", async () => {
       const orders = await ordersResponse.json();
       const stats = await statsResponse.json();
 
-      allOrders = orders; // 緩存數據
+      allOrders = orders;
 
-      // 填充負責人篩選下拉選單 (僅在初次載入時)
       if (filterUser.options.length <= 1) {
         users.forEach((user) => {
           const option = document.createElement("option");
@@ -136,7 +133,6 @@ document.addEventListener("DOMContentLoaded", async () => {
         });
       }
 
-      // 渲染儀表板數據
       document.getElementById("stats-today").textContent = stats.newOrdersToday;
       document.getElementById("stats-pending").textContent =
         stats.pendingOrders;
@@ -144,7 +140,6 @@ document.addEventListener("DOMContentLoaded", async () => {
         stats.totalOrdersThisMonth;
       document.getElementById("stats-users").textContent = stats.userCount;
 
-      // 渲染訂單表格
       renderOrders(orders, users);
     } catch (error) {
       console.error("載入後台資料失敗:", error);
@@ -152,7 +147,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
   };
 
-  // 顯示訂單詳情 Modal
   const showOrderDetail = (orderId) => {
     const order = allOrders.find((o) => o.id === orderId);
     if (!order) return;
@@ -195,12 +189,11 @@ document.addEventListener("DOMContentLoaded", async () => {
     modal.style.display = "flex";
   };
 
-  // 事件監聽
+  // Event Listeners
   filterStatus.addEventListener("change", fetchAndRender);
   filterUser.addEventListener("change", fetchAndRender);
   searchInput.addEventListener("input", fetchAndRender);
 
-  // 使用事件代理來處理動態生成的按鈕
   ordersTableBody.addEventListener("click", (e) => {
     if (e.target.classList.contains("btn-view-detail")) {
       showOrderDetail(e.target.dataset.orderId);
@@ -211,22 +204,24 @@ document.addEventListener("DOMContentLoaded", async () => {
     const target = e.target;
     const orderId = target.dataset.orderId;
 
+    const updateHeaders = { ...headers, cache: "no-cache" }; // MODIFIED
+
     if (target.classList.contains("status-select")) {
       await fetch(`/api/admin/orders/${orderId}/status`, {
         method: "PUT",
-        headers,
+        headers: updateHeaders,
         body: JSON.stringify({ status: target.value }),
       });
     }
     if (target.classList.contains("assign-select")) {
       await fetch(`/api/admin/orders/${orderId}/assign`, {
         method: "PUT",
-        headers,
+        headers: updateHeaders,
         body: JSON.stringify({ userId: target.value || null }),
       });
     }
   });
 
-  // 初始載入
+  // Initial Load
   fetchAndRender();
 });
