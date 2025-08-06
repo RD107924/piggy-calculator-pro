@@ -311,6 +311,7 @@ select option:disabled {
   background-color: #27ae60;
 }
 
+/* --- 手機版響應式設計 --- */
 @media (max-width: 768px) {
   body {
     padding: 0;
@@ -325,6 +326,10 @@ select option:disabled {
 
   h1 {
     font-size: 1.5em;
+  }
+
+  .item-name-input {
+    font-size: 1.2em;
   }
 
   .input-row {
@@ -389,5 +394,68 @@ select option:disabled {
   .btn {
     width: 100%;
     margin: 0;
+  }
+}
+
+/* --- 新增：人次計數器、管理者登入和 LINE 按鈕的樣式 --- */
+
+/* 使用人次計數器 */
+.usage-counter {
+  text-align: center;
+  margin-bottom: 20px;
+  color: #555;
+  font-size: 1.1em;
+  font-weight: bold;
+  background-color: #e9f5ff;
+  padding: 10px;
+  border-radius: 5px;
+}
+
+/* 管理者登入連結 */
+.admin-login-link {
+  text-align: right;
+  margin-top: 25px;
+  font-size: 14px;
+}
+
+.admin-login-link a {
+  color: #95a5a6; /* 使用一個低調的灰色 */
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+.admin-login-link a:hover {
+  color: #1a73e8; /* 滑鼠移上去時變色 */
+  text-decoration: underline;
+}
+
+/* LINE 客服浮動按鈕 */
+.line-fab {
+  position: fixed;
+  bottom: 25px;
+  right: 25px;
+  width: 60px;
+  height: 60px;
+  background-color: #00b900; /* LINE 的官方綠色 */
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+  z-index: 1000; /* 確保它在最上層 */
+  transition: transform 0.2s ease-in-out;
+}
+
+.line-fab:hover {
+  transform: scale(1.1); /* 滑鼠移上去時放大一點 */
+}
+
+/* 針對手機版調整按鈕大小和位置 */
+@media (max-width: 768px) {
+  .line-fab {
+    width: 55px;
+    height: 55px;
+    bottom: 20px;
+    right: 20px;
   }
 }

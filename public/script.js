@@ -20,8 +20,28 @@ document.addEventListener("DOMContentLoaded", () => {
   const deliveryLocationSelect = document.getElementById("deliveryLocation");
   const lineNicknameInput = document.getElementById("lineNickname");
   const copyAddressBtn = document.getElementById("copyAddressBtn");
+  const usageCountSpan = document.getElementById("usageCount"); // NEW: 獲取人次計數器的元素
 
   // --- 3. 核心功能函式 ---
+
+  // NEW: 使用人次計數器功能
+  function initializeUsageCounter() {
+    const baseCount = 5000; // 從 5000 開始
+    let currentCount = localStorage.getItem("usageCount");
+
+    if (currentCount === null) {
+      // 如果是第一次訪問，設定一個初始隨機值
+      currentCount = baseCount + Math.floor(Math.random() * 50);
+    } else {
+      currentCount = parseInt(currentCount, 10);
+    }
+
+    // 隨機增加 1-3 人次，讓計數器看起來更真實
+    currentCount += Math.floor(Math.random() * 3) + 1;
+
+    localStorage.setItem("usageCount", currentCount);
+    usageCountSpan.textContent = currentCount.toLocaleString();
+  }
 
   function addNewItem() {
     itemCount++;
@@ -35,12 +55,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
     itemDiv.innerHTML = `
             <input type="text" id="name-${itemCount}" class="item-name-input" placeholder="請輸入商品名稱 (例如: 客廳沙發)">
-            
             <div class="calc-method-toggle">
                 <label><input type="radio" name="calc-method-${itemCount}" value="dimensions" checked> 依尺寸 (長x寬x高)</label>
                 <label><input type="radio" name="calc-method-${itemCount}" value="cbm"> 依體積 (立方米/方)</label>
             </div>
-
             <div class="dimensions-input-wrapper">
                 <div class="input-row">
                     <div class="input-wrapper"><label for="length-${itemCount}">長 (cm)</label><input type="number" id="length-${itemCount}" placeholder="單件"></div>
@@ -53,16 +71,13 @@ document.addEventListener("DOMContentLoaded", () => {
                     <div class="input-wrapper"><label for="cbm-${itemCount}">立方米 (方)</label><input type="number" id="cbm-${itemCount}" placeholder="單件"></div>
                 </div>
             </div>
-            
             <div class="input-row">
                 <div class="input-wrapper"><label for="weight-${itemCount}">重量 (kg)</label><input type="number" id="weight-${itemCount}" placeholder="單件"></div>
                 <div class="input-wrapper"><label for="quantity-${itemCount}">數量</label><input type="number" id="quantity-${itemCount}" value="1" min="1"></div>
             </div>
-
              <div class="input-row">
                 <div class="input-wrapper"><label for="type-${itemCount}">家具種類</label><select id="type-${itemCount}">${optionsHtml}</select></div>
             </div>
-
             ${itemCount > 1 ? '<button class="btn-remove">X</button>' : ""}
         `;
     itemList.appendChild(itemDiv);
@@ -347,4 +362,5 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // --- 5. 初始載入 ---
   addNewItem();
+  initializeUsageCounter(); // NEW: 頁面載入時初始化計數器
 });
