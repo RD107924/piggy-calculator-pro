@@ -634,3 +634,10 @@ select option:disabled {
   background-color: #e9f5ff;
   color: #333;
 }
+/* --- 新增：頁首 LOGO 樣式 --- */
+.header-logo {
+  display: block; /* 讓 margin: auto 生效 */
+  margin: 0 auto 20px auto; /* 上下 0, 左右自動 (實現水平置中), 下方留 20px 間距 */
+  max-width: 150px; /* LOGO 最大寬度，您可以自行調整 */
+  height: auto; /* 高度自動，保持圖片比例 */
+}
