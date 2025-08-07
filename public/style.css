@@ -614,3 +614,23 @@ select option:disabled {
   opacity: 0.7;
   cursor: not-allowed;
 }
+/* --- 新增：分享連結後備方案的樣式 --- */
+.share-fallback-wrapper {
+  margin-top: 15px;
+  text-align: center;
+}
+.share-fallback-wrapper p {
+  margin: 0 0 5px 0;
+  font-size: 14px;
+  font-weight: bold;
+}
+.share-fallback-input {
+  width: 100%;
+  padding: 8px;
+  font-size: 14px;
+  text-align: center;
+  border: 1px solid #1a73e8;
+  border-radius: 5px;
+  background-color: #e9f5ff;
+  color: #333;
+}

@@ -25,7 +25,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // --- 3. 核心功能函式 ---
 
-  // 優化 1: 自動儲存草稿
   let saveTimeout;
   const saveItemsToLocalStorage = () => {
     clearTimeout(saveTimeout);
@@ -50,7 +49,7 @@ document.addEventListener("DOMContentLoaded", () => {
         items.push(itemData);
       });
       localStorage.setItem("draftItems", JSON.stringify(items));
-    }, 500); // Debounce: 停止輸入 500ms 後才儲存
+    }, 500);
   };
 
   const loadItemsFromLocalStorage = () => {
@@ -90,7 +89,7 @@ document.addEventListener("DOMContentLoaded", () => {
         }
       } catch (e) {
         console.error("無法解析草稿資料:", e);
-        localStorage.removeItem("draftItems"); // 清除損壞的草稿
+        localStorage.removeItem("draftItems");
       }
     }
   };
@@ -455,6 +454,9 @@ document.addEventListener("DOMContentLoaded", () => {
     button.disabled = true;
     button.innerHTML = `<span class="spinner"></span> 產生連結中...`;
 
+    const oldFallback = document.getElementById("share-fallback");
+    if (oldFallback) oldFallback.remove();
+
     try {
       const response = await fetch("/api/quotes", {
         method: "POST",
@@ -467,10 +469,24 @@ document.addEventListener("DOMContentLoaded", () => {
       const { id } = await response.json();
       const shareUrl = `${window.location.origin}/quote.html?id=${id}`;
 
-      await navigator.clipboard.writeText(shareUrl);
-
-      button.textContent = "連結已複製！";
-      button.style.backgroundColor = "#27ae60";
+      try {
+        await navigator.clipboard.writeText(shareUrl);
+        button.textContent = "連結已複製！";
+        button.style.backgroundColor = "#27ae60";
+      } catch (copyError) {
+        console.warn("自動複製失敗:", copyError);
+        button.textContent = "產生成功！";
+        button.style.backgroundColor = "#27ae60";
+        const fallbackWrapper = document.createElement("div");
+        fallbackWrapper.id = "share-fallback";
+        fallbackWrapper.className = "share-fallback-wrapper";
+        fallbackWrapper.innerHTML = `
+                    <p>自動複製失敗！請手動複製以下連結：</p>
+                    <input type="text" readonly class="share-fallback-input" value="${shareUrl}">
+                `;
+        button.parentElement.insertAdjacentElement("afterend", fallbackWrapper);
+        fallbackWrapper.querySelector("input").select();
+      }
     } catch (error) {
       console.error(error);
       button.textContent = "產生失敗";
@@ -480,7 +496,7 @@ document.addEventListener("DOMContentLoaded", () => {
         button.disabled = false;
         button.innerHTML = originalBtnText;
         button.style.backgroundColor = "#f39c12";
-      }, 2000);
+      }, 5000);
     }
   }
 
